@@ -1,0 +1,89 @@
+# https://medium.com/@gareth.newman/sql-server-replication-on-docker-a-glimpse-into-the-future-46086c7b3f2
+
+version: "3.3"
+services:
+  publisher:
+    hostname: publisher
+    image: mcr.microsoft.com/mssql/server:2019-CU3-ubuntu-18.04
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: y
+      SA_PASSWORD: Pa55w0rd!
+    volumes:
+      - './:/src'
+      - 'publisher_data:/var/opt/mssql'
+    ports:
+      - "1451:1433"
+
+  subscriber:
+    hostname: subscriber
+    image: mcr.microsoft.com/mssql/server:2019-CU3-ubuntu-18.04
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: y
+      SA_PASSWORD: Pa55w0rd!
+    volumes:
+      - './:/src'
+      - 'subscriber_data:/var/opt/mssql'
+    ports:
+      - "1452:1433"
+
+  distributor:
+    hostname: distributor
+    image: mcr.microsoft.com/mssql/server:2019-CU3-ubuntu-18.04
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: y
+      SA_PASSWORD: Pa55w0rd!
+    volumes:
+      - './:/src'
+      - 'distributor_data:/var/opt/mssql'
+    ports:
+      - "1453:1433"
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+
+  node_exporter:
+    image: prom/node-exporter
+
+  publisher-exporter:
+    image: awaragi/prometheus-mssql-exporter
+    ports:
+      - "4000"
+    environment:
+      SERVER: publisher
+      USERNAME: sa
+      PASSWORD: Pa55w0rd!
+  subscriber-exporter:
+    image: awaragi/prometheus-mssql-exporter
+    ports:
+      - "4000"
+    environment:
+      SERVER: subscriber
+      USERNAME: sa
+      PASSWORD: Pa55w0rd!
+  distributor-exporter:
+    image: awaragi/prometheus-mssql-exporter
+    ports:
+      - "4000"
+    environment:
+      SERVER: distributor
+      USERNAME: sa
+      PASSWORD: Pa55w0rd!
+  grafana:
+    image: grafana/grafana
+    volumes:
+      - './grafana/grafana.ini:/etc/grafana/grafana.ini'
+      - './grafana/provisioning:/etc/grafana/provisioning'
+    ports:
+      - "3000:3000"
+
+volumes:
+  publisher_data:
+  subscriber_data:
+  distributor_data:
+
